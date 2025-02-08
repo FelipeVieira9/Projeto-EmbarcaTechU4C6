@@ -11,6 +11,7 @@
 #include "inc/ssd1306.h"
 #include "inc/font.h"
 #include "funcoes/mudar_LED.c"
+#include <string.h>
 
 #define I2C_PORT i2c1
 #define I2C_SDA 14
@@ -95,11 +96,16 @@ double numeros[10][25] = {
 static volatile uint32_t last_time = 0; // Armazena o tempo do último evento (em microssegundos)
 volatile int contador = 0; // Contador que vai mudar o valor nas interrupções, por isso voltatile
 
+// String e char global para print na uart
+char messageStr[50] = "Bem vindo";
+char message = '\0';
+
 // Função que vai pra interrupção
 static void gpio_irq_handler(uint gpio, uint32_t events);
 
 int main()
 {
+  // Inicialização de variáveis para a matriz de leds
   PIO pio = pio0; 
   uint16_t i;
   bool ok;
@@ -142,8 +148,6 @@ int main()
   gpio_set_irq_enabled_with_callback(Botao_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
   gpio_set_irq_enabled_with_callback(Botao_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
-  // Estado anterior do led
-  int estado_anterior = 0;
   // I2C Initialisation. Using it at 400Khz.
   i2c_init(I2C_PORT, 400 * 1000);
 
@@ -160,8 +164,6 @@ int main()
   ssd1306_fill(&ssd, false);
   ssd1306_send_data(&ssd);
 
-  // stdio_init_all();
-  // printf("TESTE");
   bool cor = true;
 
   // Inicializa a UART
@@ -174,8 +176,6 @@ int main()
   // Mensagem inicial
   const char *init_message = "UART Demo - RP2\r\n"
                               "Digite algo e veja o eco:\r\n";
-  char messageStr[] = "Bem vindo";
-  char message = '\0';
   uart_puts(UART_ID, init_message);
   while (true)
   {
@@ -234,10 +234,7 @@ int main()
       // Atualiza o conteúdo do display com animações
       ssd1306_fill(&ssd, !cor); // Limpa o display
       ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-      // ssd1306_draw_string(&ssd, "CEPEDI   TIC37", 8, 10); // Desenha uma string
       ssd1306_draw_string(&ssd, messageStr, 20, 30); // Desenha uma string
-      // ssd1306_draw_string(&ssd, "PROF WILTON", 15, 48); // Desenha uma string     
-      // ssd1306_draw_char(&ssd, 'z', 20, 20); 
       ssd1306_send_data(&ssd); // Atualiza o display
     } else {
       cor = !cor;
@@ -260,19 +257,35 @@ static void gpio_irq_handler(uint gpio, uint32_t events) {
 
   // Verificar o tempo que passou
   if ((current_time - last_time) > 200000) { // 200ms de deboucing
+    uart_puts(UART_ID, "Interrupcao\r\n");
     last_time = current_time;
     if (gpio == 5) { // Se botão A
-    contador++;
-    
-    if (contador > 9) {
-      contador = 0;
+    uart_puts(UART_ID, "Click no A\r\n");
+    if (!gpio_get(Led_GREEN)) {
+      uart_puts(UART_ID, "Ligar led verde\r\n\n");
+      strcpy(messageStr, "Led verde on");
+      // Para indicar que eu quero print na string
+      message = '\0';
+      gpio_put(Led_GREEN, 1);
+    } else {
+      strcpy(messageStr, "Led verde off");
+      message = '\0';
+      gpio_put(Led_GREEN, 0);
+      uart_puts(UART_ID, "Desligar led verde\r\n\n");
     }
 
     } else { // Se B
-    contador--;
-    
-    if (contador < 0) {
-      contador = 9;
+    uart_puts(UART_ID, "Click no B\r\n");
+    if (!gpio_get(Led_BLUE)) {
+      strcpy(messageStr, "Led azul on");
+      message = '\0';
+      uart_puts(UART_ID, "Ligar led azul\r\n\n");
+      gpio_put(Led_BLUE, 1);
+    } else {
+      strcpy(messageStr, "Led azul off");
+      message = '\0';
+      uart_puts(UART_ID, "Desligar led azul\r\n\n");
+      gpio_put(Led_BLUE, 0);
     }
 
     }
