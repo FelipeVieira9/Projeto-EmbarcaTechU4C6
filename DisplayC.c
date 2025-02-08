@@ -174,8 +174,8 @@ int main()
   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART); // Configura o pino 1 para RX
 
   // Mensagem inicial
-  const char *init_message = "UART Demo - RP2\r\n"
-                              "Digite algo e veja o eco:\r\n";
+  const char *init_message = "Bem Vindo\r\n"
+                              "Cada caractere digitado aparece no display:\r\n";
   uart_puts(UART_ID, init_message);
   while (true)
   {
@@ -189,7 +189,7 @@ int main()
           uart_putc(UART_ID, c);
 
           // Envia uma mensagem adicional para cada caractere recebido
-          uart_puts(UART_ID, " <- Eco do RP2\r\n");
+          uart_puts(UART_ID, " <- Caractere Digitado\r\n");
           
           if (c >= '0' && c <= '9') {
             switch (c)
